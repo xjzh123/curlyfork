@@ -727,7 +727,8 @@ proc startRequest*(
   headers: sink HttpHeaders = emptyHttpHeaders(),
   body: sink string = "",
   timeout = 60,
-  tag: sink string = ""
+  tag: sink string = "",
+  extraOptions: sink seq[OptionPair] = @[]
 ) {.raises: [], gcsafe.} =
   ## Starts an HTTP request. These requests are run in parallel.
   ## This proc does not block waiting for a response.
@@ -735,7 +736,7 @@ proc startRequest*(
   ## removed by a call to `waitForResponse`.
   ## If the responses are never removed, they will accumulate in memory.
   var batch: RequestBatch
-  batch.addRequest(verb, url, headers, body, tag)
+  batch.addRequest(verb, url, headers, body, tag, extraOptions)
   curl.startRequests(batch, timeout)
 
 proc waitForResponse*(
