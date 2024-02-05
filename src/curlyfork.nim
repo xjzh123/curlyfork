@@ -456,6 +456,8 @@ proc makeRequest*(
 
   rw.prepHeadersForLibcurl()
 
+  debugEcho(rw.extraOptions)
+
   withLock curl.lock:
     curl.queue.addLast(rw)
   signal(curl.cond)
@@ -585,6 +587,8 @@ proc makeRequests*(
     rw.waitGroup = waitGroup
 
     rw.prepHeadersForLibcurl()
+
+    debugEcho(rw.extraOptions)
 
     wrapped.add(rw)
 
