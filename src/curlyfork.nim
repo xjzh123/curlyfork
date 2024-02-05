@@ -456,8 +456,6 @@ proc makeRequest*(
 
   rw.prepHeadersForLibcurl()
 
-  debugEcho(rw.extraOptions)
-
   withLock curl.lock:
     curl.queue.addLast(rw)
   signal(curl.cond)
@@ -588,8 +586,6 @@ proc makeRequests*(
 
     rw.prepHeadersForLibcurl()
 
-    debugEcho(rw.extraOptions)
-
     wrapped.add(rw)
 
     withLock curl.lock:
@@ -712,6 +708,7 @@ proc startRequests*(
     if rw.ignore.len > 0:
       rw.body = rw.ignore[0].addr
       rw.bodyLen = rw.ignore.len
+    rw.extraOptions = request.extraOptions
     rw.timeout = timeout
     rw.tag = move request.tag
 
