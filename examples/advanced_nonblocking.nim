@@ -1,4 +1,4 @@
-import mummy, mummy/routers, curly
+import mummy, mummy/routers, curlyfork
 
 # This is a more advanced example that shows starting non-blocking requests from
 # the worker threads of a Mummy HTTP server and receiving the responses in

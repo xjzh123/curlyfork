@@ -1,4 +1,4 @@
-import mummy, mummy/routers, curly
+import mummy, mummy/routers, curlyfork
 
 ## This example shows a basic HTTP server that makes a GET request to
 ## https://www.google.com and returns the body length every time a request is

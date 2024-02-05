@@ -1,4 +1,4 @@
-import curly, std/times
+import curlyfork, std/times
 
 let curl = newCurly()
 

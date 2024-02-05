@@ -70,6 +70,7 @@ type
     headers*: HttpHeaders
     body*: string
     tag*: string
+    extraOptions: seq[OptionPair]
 
   ResponseBatch* = seq[tuple[response: Response, error: string]]
 
@@ -79,6 +80,8 @@ type
     count: int
 
   WaitGroup = ptr WaitGroupObj
+
+  OptionPair = (libcurl.Option, pointer)
 
   RequestWrapObj = object
     verb: string
@@ -97,6 +100,7 @@ type
     responseHeadersForLibcurl: StringWrap
     response: Response
     error: string
+    extraOptions: seq[OptionPair]
 
   RequestWrap = ptr RequestWrapObj
 
@@ -257,6 +261,9 @@ proc threadProc(curl: Curly) {.raises: [].} =
         request.responseHeadersForLibcurl.addr
       )
       discard easyHandle.easy_setopt(OPT_HEADERFUNCTION, curlWriteFn)
+
+      for (opt, value) in request.extraOptions:
+        discard easyHandle.easy_setopt(opt, value)
 
       let mc = multi_add_handle(curl.multiHandle, easyHandle)
       if mc == M_OK:
@@ -430,7 +437,8 @@ proc makeRequest*(
   url: sink string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
   body: openarray[char] = "".toOpenArray(0, -1),
-  timeout = 60
+  timeout = 60,
+  extraOptions: seq[OptionPair] = @[]
 ): Response {.gcsafe.} =
   ## Makes the HTTP request and blocks until the response is received. If
   ## a response cannot be received (due to timeout, DNS failure, broken
@@ -443,6 +451,7 @@ proc makeRequest*(
     rw.body = body[0].unsafeAddr
     rw.bodyLen = body.len
   rw.timeout = timeout
+  rw.extraOptions = extraOptions
   rw.waitGroup = newWaitGroup(1)
 
   rw.prepHeadersForLibcurl()
@@ -472,52 +481,58 @@ proc get*(
   curl: Curly,
   url: sink string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
-  timeout = 60
+  timeout = 60,
+  extraOptions: seq[OptionPair] = @[]
 ): Response =
-  curl.makeRequest("GET", url, headers, "", timeout)
+  curl.makeRequest("GET", url, headers, "", timeout, extraOptions)
 
 proc post*(
   curl: Curly,
   url: string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
   body: openarray[char] = "".toOpenArray(0, -1),
-  timeout = 60
+  timeout = 60,
+  extraOptions: seq[OptionPair] = @[]
 ): Response =
-  curl.makeRequest("POST", url, headers, body, timeout)
+  curl.makeRequest("POST", url, headers, body, timeout, extraOptions)
 
 proc put*(
   curl: Curly,
   url: string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
   body: openarray[char] = "".toOpenArray(0, -1),
-  timeout = 60
+  timeout = 60,
+  extraOptions: seq[OptionPair] = @[]
 ): Response =
-  curl.makeRequest("PUT", url, headers, body, timeout)
+  curl.makeRequest("PUT", url, headers, body, timeout, extraOptions)
 
 proc patch*(
   curl: Curly,
   url: string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
   body: openarray[char] = "".toOpenArray(0, -1),
-  timeout = 60
+  timeout = 60,
+  extraOptions: seq[OptionPair] = @[]
 ): Response =
-  curl.makeRequest("PATCH", url, headers, body, timeout)
+  curl.makeRequest("PATCH", url, headers, body, timeout, extraOptions)
 
 proc delete*(
   curl: Curly,
   url: string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
-  timeout = 60
+  timeout = 60,
+  extraOptions: seq[OptionPair] = @[]
 ): Response =
-  curl.makeRequest("DELETE", url, headers, "", timeout)
+  curl.makeRequest("DELETE", url, headers, "", timeout, extraOptions)
 
 proc head*(
   curl: Curly,
   url: string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
-  timeout = 60
+  timeout = 60,
+  extraOptions: seq[OptionPair] = @[]
 ): Response =
-  curl.makeRequest("HEAD", url, headers, "", timeout)
+  curl.makeRequest("HEAD", url, headers, "", timeout, extraOptions)
 
 proc unwrapResponse(
   rw: RequestWrap
@@ -564,6 +579,7 @@ proc makeRequests*(
     if request.body.len > 0:
       rw.body = request.body[0].unsafeAddr
       rw.bodyLen = request.body.len
+    rw.extraOptions = request.extraOptions
     rw.timeout = timeout
     rw.tag = request.tag
     rw.waitGroup = waitGroup
@@ -599,66 +615,74 @@ proc addRequest*(
   url: sink string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
   body: sink string = "",
-  tag: sink string = ""
+  tag: sink string = "",
+  extraOptions: sink seq[OptionPair] = @[]
 ) =
   batch.requests.add(BatchedRequest(
     verb: move verb,
     url: move url,
     headers: move headers,
     body: move body,
-    tag: move tag
+    tag: move tag,
+    extraOptions: move extraOptions
   ))
 
 proc get*(
   batch: var RequestBatch,
   url: sink string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
-  tag: sink string = ""
+  tag: sink string = "",
+  extraOptions: sink seq[OptionPair] = @[]
 ) =
-  batch.addRequest("GET", move url, move headers, "", tag)
+  batch.addRequest("GET", move url, move headers, "", tag, extraOptions)
 
 proc post*(
   batch: var RequestBatch,
   url: sink string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
   body: sink string = "",
-  tag: sink string = ""
+  tag: sink string = "",
+  extraOptions: sink seq[OptionPair] = @[]
 ) =
-  batch.addRequest("POST", move url, move headers, move body, tag)
+  batch.addRequest("POST", move url, move headers, move body, tag, extraOptions)
 
 proc put*(
   batch: var RequestBatch,
   url: sink string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
   body: sink string = "",
-  tag: sink string = ""
+  tag: sink string = "",
+  extraOptions: sink seq[OptionPair] = @[]
 ) =
-  batch.addRequest("PUT", move url, move headers, move body, tag)
+  batch.addRequest("PUT", move url, move headers, move body, tag, extraOptions)
 
 proc patch*(
   batch: var RequestBatch,
   url: sink string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
   body: sink string = "",
-  tag: sink string = ""
+  tag: sink string = "",
+  extraOptions: sink seq[OptionPair] = @[]
 ) =
-  batch.addRequest("PATCH", move url, move headers, move body, tag)
+  batch.addRequest("PATCH", move url, move headers, move body, tag, extraOptions)
 
 proc delete*(
   batch: var RequestBatch,
   url: sink string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
-  tag: sink string = ""
+  tag: sink string = "",
+  extraOptions: sink seq[OptionPair] = @[]
 ) =
-  batch.addRequest("DELETE", move url, move headers, "", tag)
+  batch.addRequest("DELETE", move url, move headers, "", tag, extraOptions)
 
 proc head*(
   batch: var RequestBatch,
   url: sink string,
   headers: sink HttpHeaders = emptyHttpHeaders(),
-  tag: sink string = ""
+  tag: sink string = "",
+  extraOptions: sink seq[OptionPair] = @[]
 ) =
-  batch.addRequest("HEAD", move url, move headers, "", tag)
+  batch.addRequest("HEAD", move url, move headers, "", tag, extraOptions)
 
 proc startRequests*(
   curl: Curly,

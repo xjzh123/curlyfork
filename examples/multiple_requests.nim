@@ -1,4 +1,4 @@
-import curly
+import curlyfork
 
 let curl = newCurly()
 

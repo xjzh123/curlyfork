@@ -22,7 +22,7 @@ By choosing what blocks and doesn't block, you can manage your program's control
 
 ### Getting started
 ```nim
-import curly
+import curlyfork
 
 let curl = newCurly() # Best to start with a single long-lived instance
 ```
