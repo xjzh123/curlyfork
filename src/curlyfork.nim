@@ -81,7 +81,7 @@ type
 
   WaitGroup = ptr WaitGroupObj
 
-  OptionPair = (libcurl.Option, pointer)
+  OptionPair* = (libcurl.Option, pointer)
 
   RequestWrapObj = object
     verb: string
